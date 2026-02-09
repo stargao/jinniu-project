@@ -1,34 +1,23 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import {
   Card,
   Table,
   Button,
   Tag,
   Space,
-  Input,
-  Select,
-  Form,
-  Row,
-  Col,
   Drawer,
   Descriptions,
   DescriptionsItem,
   Timeline,
-  TimelineItem
+  TimelineItem,
+  message
 } from 'ant-design-vue'
 import {
-  SearchOutlined,
   EyeOutlined,
   HistoryOutlined
 } from '@ant-design/icons-vue'
-
-// 搜索表单
-const searchForm = reactive({
-  level: undefined,
-  status: undefined,
-  keyword: ''
-})
+import QueryBuilder, { type QueryField, type QueryObject } from '@/components/common/QueryBuilder.vue'
 
 // 表格列定义
 const columns = [
@@ -69,19 +58,56 @@ const dataSource = ref([
   }
 ])
 
-// 选项数据
-const levelOptions = [
-  { label: '区本级', value: 'district' },
-  { label: '市本级', value: 'city' },
-  { label: '省本级', value: 'province' }
-]
-
-const statusOptions = [
-  { label: '草稿', value: 'draft' },
-  { label: '审核中', value: 'reviewing' },
-  { label: '已通过', value: 'approved' },
-  { label: '进行中', value: 'ongoing' },
-  { label: '已完成', value: 'completed' }
+// QueryBuilder 字段配置
+const queryFields: QueryField[] = [
+  {
+    key: 'projectCode',
+    label: '项目编号',
+    type: 'string'
+  },
+  {
+    key: 'projectName',
+    label: '项目名称',
+    type: 'string'
+  },
+  {
+    key: 'level',
+    label: '项目级别',
+    type: 'select',
+    options: [
+      { label: '区本级', value: 'district' },
+      { label: '市本级', value: 'city' },
+      { label: '省本级', value: 'province' }
+    ]
+  },
+  {
+    key: 'leadUnit',
+    label: '牵头单位',
+    type: 'select',
+    options: [
+      { label: '区发改局', value: '区发改局' },
+      { label: '区住建局', value: '区住建局' },
+      { label: '区经信局', value: '区经信局' },
+      { label: '区商务局', value: '区商务局' }
+    ]
+  },
+  {
+    key: 'status',
+    label: '项目状态',
+    type: 'select',
+    options: [
+      { label: '草稿', value: 'draft' },
+      { label: '审核中', value: 'reviewing' },
+      { label: '已通过', value: 'approved' },
+      { label: '进行中', value: 'ongoing' },
+      { label: '已完成', value: 'completed' }
+    ]
+  },
+  {
+    key: 'totalInvestment',
+    label: '总投资(万元)',
+    type: 'number'
+  }
 ]
 
 // 抽屉控制
@@ -89,16 +115,17 @@ const detailDrawerVisible = ref(false)
 const historyDrawerVisible = ref(false)
 const selectedRecord = ref<any>(null)
 
-// 搜索
-const handleSearch = () => {
-  console.log('搜索:', searchForm)
+// QueryBuilder 查询回调
+const handleQueryBuilderSearch = (queryObject: QueryObject) => {
+  console.log('查询条件:', queryObject)
+  message.success(`执行查询：${queryObject.conditions.length}个条件`)
+  // TODO: 调用 API 进行查询
 }
 
-// 重置
-const handleReset = () => {
-  searchForm.level = undefined
-  searchForm.status = undefined
-  searchForm.keyword = ''
+// QueryBuilder 重置回调
+const handleQueryBuilderReset = () => {
+  console.log('重置查询条件')
+  message.info('已重置查询条件')
 }
 
 // 查看详情
@@ -117,54 +144,12 @@ const handleHistory = (record: any) => {
 <template>
   <div class="project-browse">
     <Card title="项目浏览" class="page-card">
-      <!-- 搜索区域 -->
-      <div class="search-area">
-        <Form :model="searchForm" layout="inline">
-          <Row :gutter="16" style="width: 100%">
-            <Col :span="5">
-              <FormItem label="项目级别" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.level"
-                  placeholder="请选择级别"
-                  :options="levelOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="5">
-              <FormItem label="项目状态" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.status"
-                  placeholder="请选择状态"
-                  :options="statusOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="8">
-              <FormItem label="关键词" style="width: 100%">
-                <Input
-                  v-model:value="searchForm.keyword"
-                  placeholder="请输入项目编号或名称"
-                  allow-clear
-                />
-              </FormItem>
-            </Col>
-            <Col :span="6">
-              <FormItem>
-                <Space>
-                  <Button type="primary" @click="handleSearch">
-                    <SearchOutlined />查询
-                  </Button>
-                  <Button @click="handleReset">重置</Button>
-                </Space>
-              </FormItem>
-            </Col>
-          </Row>
-        </Form>
-      </div>
+      <!-- 通用查询组件 -->
+      <QueryBuilder
+        :fields="queryFields"
+        @search="handleQueryBuilderSearch"
+        @reset="handleQueryBuilderReset"
+      />
 
       <!-- 数据表格 -->
       <Table
@@ -246,13 +231,6 @@ const handleHistory = (record: any) => {
 
 .page-card {
   background: #fff;
-}
-
-.search-area {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
 }
 
 :deep(.ant-table) {

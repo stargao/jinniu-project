@@ -1,23 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import {
   Card,
   Table,
   Button,
   Tag,
   Space,
-  Input,
-  Select,
-  Form,
-  Row,
-  Col,
   Modal,
   message,
   Popconfirm
 } from 'ant-design-vue'
 import {
   PlusOutlined,
-  SearchOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
@@ -25,12 +19,7 @@ import {
   DatabaseOutlined,
   SwapOutlined
 } from '@ant-design/icons-vue'
-
-// 搜索表单
-const searchForm = reactive({
-  status: undefined,
-  keyword: ''
-})
+import QueryBuilder, { type QueryField, type QueryObject } from '@/components/common/QueryBuilder.vue'
 
 // 表格列定义
 const columns = [
@@ -68,12 +57,45 @@ const dataSource = ref([
   }
 ])
 
-// 选项数据
-const statusOptions = [
-  { label: '待审核', value: 'pending' },
-  { label: '已入库', value: 'stored' },
-  { label: '已转化', value: 'converted' },
-  { label: '已退回', value: 'returned' }
+// QueryBuilder 字段配置
+const queryFields: QueryField[] = [
+  {
+    key: 'projectCode',
+    label: '项目编号',
+    type: 'string'
+  },
+  {
+    key: 'projectName',
+    label: '项目名称',
+    type: 'string'
+  },
+  {
+    key: 'category',
+    label: '项目类别',
+    type: 'select',
+    options: [
+      { label: '基础设施', value: '基础设施' },
+      { label: '市政工程', value: '市政工程' },
+      { label: '产业发展', value: '产业发展' },
+      { label: '社会民生', value: '社会民生' }
+    ]
+  },
+  {
+    key: 'reserveStatus',
+    label: '储备状态',
+    type: 'select',
+    options: [
+      { label: '待审核', value: 'pending' },
+      { label: '已入库', value: 'stored' },
+      { label: '已转化', value: 'converted' },
+      { label: '已退回', value: 'returned' }
+    ]
+  },
+  {
+    key: 'estimatedInvestment',
+    label: '预计投资(万元)',
+    type: 'number'
+  }
 ]
 
 // 弹窗控制
@@ -81,15 +103,17 @@ const modalVisible = ref(false)
 const modalTitle = ref('新增预备项目')
 const editingRecord = ref<any>(null)
 
-// 搜索
-const handleSearch = () => {
-  message.success('执行搜索')
+// QueryBuilder 查询回调
+const handleQueryBuilderSearch = (queryObject: QueryObject) => {
+  console.log('查询条件:', queryObject)
+  message.success(`执行查询：${queryObject.conditions.length}个条件`)
+  // TODO: 调用 API 进行查询
 }
 
-// 重置
-const handleReset = () => {
-  searchForm.status = undefined
-  searchForm.keyword = ''
+// QueryBuilder 重置回调
+const handleQueryBuilderReset = () => {
+  console.log('重置查询条件')
+  message.info('已重置查询条件')
 }
 
 // 新增项目
@@ -145,43 +169,12 @@ const handleModalCancel = () => {
 <template>
   <div class="preparation-page">
     <Card title="预备项目管理" class="page-card">
-      <!-- 搜索区域 -->
-      <div class="search-area">
-        <Form :model="searchForm" layout="inline">
-          <Row :gutter="16" style="width: 100%">
-            <Col :span="6">
-              <FormItem label="储备状态" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.status"
-                  placeholder="请选择状态"
-                  :options="statusOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="10">
-              <FormItem label="关键词" style="width: 100%">
-                <Input
-                  v-model:value="searchForm.keyword"
-                  placeholder="请输入项目编号或名称"
-                  allow-clear
-                />
-              </FormItem>
-            </Col>
-            <Col :span="8">
-              <FormItem>
-                <Space>
-                  <Button type="primary" @click="handleSearch">
-                    <SearchOutlined />查询
-                  </Button>
-                  <Button @click="handleReset">重置</Button>
-                </Space>
-              </FormItem>
-            </Col>
-          </Row>
-        </Form>
-      </div>
+      <!-- 通用查询组件 -->
+      <QueryBuilder
+        :fields="queryFields"
+        @search="handleQueryBuilderSearch"
+        @reset="handleQueryBuilderReset"
+      />
 
       <!-- 操作按钮 -->
       <div class="table-operations">
@@ -254,13 +247,6 @@ const handleModalCancel = () => {
 
 .page-card {
   background: #fff;
-}
-
-.search-area {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
 }
 
 .table-operations {

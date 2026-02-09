@@ -1,20 +1,14 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import {
   Card,
   Table,
   Button,
   Tag,
   Space,
-  Input,
-  Select,
-  Form,
-  Row,
-  Col,
   message
 } from 'ant-design-vue'
 import {
-  SearchOutlined,
   EditOutlined,
   EyeOutlined,
   CheckCircleOutlined,
@@ -23,13 +17,7 @@ import {
 } from '@ant-design/icons-vue'
 import ProgressFormModal from './components/ProgressFormModal.vue'
 import ProgressAuditModal from './components/ProgressAuditModal.vue'
-
-// 搜索表单
-const searchForm = reactive({
-  year: undefined,
-  month: undefined,
-  keyword: ''
-})
+import QueryBuilder, { type QueryField, type QueryObject } from '@/components/common/QueryBuilder.vue'
 
 // 表格列定义
 const columns = [
@@ -73,25 +61,68 @@ const dataSource = ref([
   }
 ])
 
-// 选项数据
-const yearOptions = [
-  { label: '2024年', value: '2024' },
-  { label: '2025年', value: '2025' }
-]
-
-const monthOptions = [
-  { label: '1月', value: '01' },
-  { label: '2月', value: '02' },
-  { label: '3月', value: '03' },
-  { label: '4月', value: '04' },
-  { label: '5月', value: '05' },
-  { label: '6月', value: '06' },
-  { label: '7月', value: '07' },
-  { label: '8月', value: '08' },
-  { label: '9月', value: '09' },
-  { label: '10月', value: '10' },
-  { label: '11月', value: '11' },
-  { label: '12月', value: '12' }
+// QueryBuilder 字段配置
+const queryFields: QueryField[] = [
+  {
+    key: 'year',
+    label: '年份',
+    type: 'select',
+    options: [
+      { label: '2024年', value: '2024' },
+      { label: '2025年', value: '2025' }
+    ]
+  },
+  {
+    key: 'month',
+    label: '月份',
+    type: 'select',
+    options: [
+      { label: '1月', value: '01' },
+      { label: '2月', value: '02' },
+      { label: '3月', value: '03' },
+      { label: '4月', value: '04' },
+      { label: '5月', value: '05' },
+      { label: '6月', value: '06' },
+      { label: '7月', value: '07' },
+      { label: '8月', value: '08' },
+      { label: '9月', value: '09' },
+      { label: '10月', value: '10' },
+      { label: '11月', value: '11' },
+      { label: '12月', value: '12' }
+    ]
+  },
+  {
+    key: 'projectCode',
+    label: '项目编号',
+    type: 'string'
+  },
+  {
+    key: 'projectName',
+    label: '项目名称',
+    type: 'string'
+  },
+  {
+    key: 'phase',
+    label: '建设阶段',
+    type: 'select',
+    options: [
+      { label: '前期准备', value: 'preparation' },
+      { label: '基础施工', value: 'foundation' },
+      { label: '主体建设', value: 'main' },
+      { label: '设备安装', value: 'equipment' },
+      { label: '竣工验收', value: 'completion' }
+    ]
+  },
+  {
+    key: 'status',
+    label: '进度状态',
+    type: 'select',
+    options: [
+      { label: '正常', value: 'normal' },
+      { label: '滞后', value: 'delayed' },
+      { label: '严重滞后', value: 'seriously_delayed' }
+    ]
+  }
 ]
 
 // 弹窗控制
@@ -99,16 +130,17 @@ const progressModalVisible = ref(false)
 const auditModalVisible = ref(false)
 const selectedRecord = ref<any>(null)
 
-// 搜索
-const handleSearch = () => {
-  message.success('执行搜索')
+// QueryBuilder 查询回调
+const handleQueryBuilderSearch = (queryObject: QueryObject) => {
+  console.log('查询条件:', queryObject)
+  message.success(`执行查询：${queryObject.conditions.length}个条件`)
+  // TODO: 调用 API 进行查询
 }
 
-// 重置
-const handleReset = () => {
-  searchForm.year = undefined
-  searchForm.month = undefined
-  searchForm.keyword = ''
+// QueryBuilder 重置回调
+const handleQueryBuilderReset = () => {
+  console.log('重置查询条件')
+  message.info('已重置查询条件')
 }
 
 // 填报进度
@@ -154,54 +186,12 @@ const handleAuditOk = (values: any) => {
 <template>
   <div class="progress-report">
     <Card title="进度报送" class="page-card">
-      <!-- 搜索区域 -->
-      <div class="search-area">
-        <Form :model="searchForm" layout="inline">
-          <Row :gutter="16" style="width: 100%">
-            <Col :span="5">
-              <FormItem label="年份" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.year"
-                  placeholder="请选择年份"
-                  :options="yearOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="5">
-              <FormItem label="月份" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.month"
-                  placeholder="请选择月份"
-                  :options="monthOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="8">
-              <FormItem label="关键词" style="width: 100%">
-                <Input
-                  v-model:value="searchForm.keyword"
-                  placeholder="请输入项目编号或名称"
-                  allow-clear
-                />
-              </FormItem>
-            </Col>
-            <Col :span="6">
-              <FormItem>
-                <Space>
-                  <Button type="primary" @click="handleSearch">
-                    <SearchOutlined />查询
-                  </Button>
-                  <Button @click="handleReset">重置</Button>
-                </Space>
-              </FormItem>
-            </Col>
-          </Row>
-        </Form>
-      </div>
+      <!-- 通用查询组件 -->
+      <QueryBuilder
+        :fields="queryFields"
+        @search="handleQueryBuilderSearch"
+        @reset="handleQueryBuilderReset"
+      />
 
       <!-- 操作按钮 -->
       <div class="table-operations">
@@ -269,13 +259,6 @@ const handleAuditOk = (values: any) => {
 
 .page-card {
   background: #fff;
-}
-
-.search-area {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
 }
 
 .table-operations {

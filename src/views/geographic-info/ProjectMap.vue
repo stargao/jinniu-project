@@ -4,29 +4,18 @@ import {
   Card,
   Button,
   Space,
-  Input,
-  Select,
-  Form,
-  Row,
-  Col,
   Drawer,
   Descriptions,
   DescriptionsItem,
-  Tag
+  Tag,
+  message
 } from 'ant-design-vue'
 import {
-  SearchOutlined,
   EnvironmentOutlined,
   PlusOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue'
-
-// 搜索表单
-const searchForm = ref({
-  district: undefined,
-  status: undefined,
-  keyword: ''
-})
+import QueryBuilder, { type QueryField, type QueryObject } from '@/components/common/QueryBuilder.vue'
 
 // 项目标记点数据
 const projectMarkers = ref([
@@ -35,35 +24,55 @@ const projectMarkers = ref([
   { id: '3', name: '未来社区建设项目', lng: 104.04, lat: 30.67, status: '规划中', investment: 3000 }
 ])
 
-// 选项数据
-const districtOptions = [
-  { label: '茶店子街道', value: 'chadianzi' },
-  { label: '抚琴街道', value: 'fuqin' },
-  { label: '驷马桥街道', value: 'simaqiao' }
-]
-
-const statusOptions = [
-  { label: '规划中', value: 'planning' },
-  { label: '进行中', value: 'ongoing' },
-  { label: '已完成', value: 'completed' }
+// QueryBuilder 字段配置
+const queryFields: QueryField[] = [
+  {
+    key: 'projectName',
+    label: '项目名称',
+    type: 'string'
+  },
+  {
+    key: 'district',
+    label: '所属街道',
+    type: 'select',
+    options: [
+      { label: '茶店子街道', value: 'chadianzi' },
+      { label: '抚琴街道', value: 'fuqin' },
+      { label: '驷马桥街道', value: 'simaqiao' }
+    ]
+  },
+  {
+    key: 'status',
+    label: '项目状态',
+    type: 'select',
+    options: [
+      { label: '规划中', value: 'planning' },
+      { label: '进行中', value: 'ongoing' },
+      { label: '已完成', value: 'completed' }
+    ]
+  },
+  {
+    key: 'investment',
+    label: '投资额(万元)',
+    type: 'number'
+  }
 ]
 
 // 抽屉控制
 const drawerVisible = ref(false)
 const selectedProject = ref<any>(null)
 
-// 搜索
-const handleSearch = () => {
-  console.log('搜索:', searchForm.value)
+// QueryBuilder 查询回调
+const handleQueryBuilderSearch = (queryObject: QueryObject) => {
+  console.log('查询条件:', queryObject)
+  message.success(`执行查询：${queryObject.conditions.length}个条件`)
+  // TODO: 调用 API 进行查询
 }
 
-// 重置
-const handleReset = () => {
-  searchForm.value = {
-    district: undefined,
-    status: undefined,
-    keyword: ''
-  }
+// QueryBuilder 重置回调
+const handleQueryBuilderReset = () => {
+  console.log('重置查询条件')
+  message.info('已重置查询条件')
 }
 
 // 添加项目标记
@@ -81,56 +90,18 @@ const handleViewProject = (project: any) => {
 <template>
   <div class="project-map">
     <Card title="项目地图" class="page-card">
-      <!-- 搜索区域 -->
-      <div class="search-area">
-        <Form :model="searchForm" layout="inline">
-          <Row :gutter="16" style="width: 100%">
-            <Col :span="5">
-              <FormItem label="所属街道" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.district"
-                  placeholder="请选择街道"
-                  :options="districtOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="5">
-              <FormItem label="项目状态" style="width: 100%">
-                <Select
-                  v-model:value="searchForm.status"
-                  placeholder="请选择状态"
-                  :options="statusOptions"
-                  allow-clear
-                  style="width: 100%"
-                />
-              </FormItem>
-            </Col>
-            <Col :span="8">
-              <FormItem label="关键词" style="width: 100%">
-                <Input
-                  v-model:value="searchForm.keyword"
-                  placeholder="请输入项目名称"
-                  allow-clear
-                />
-              </FormItem>
-            </Col>
-            <Col :span="6">
-              <FormItem>
-                <Space>
-                  <Button type="primary" @click="handleSearch">
-                    <SearchOutlined />查询
-                  </Button>
-                  <Button @click="handleReset">重置</Button>
-                  <Button @click="handleAddMarker">
-                    <PlusOutlined />添加标记
-                  </Button>
-                </Space>
-              </FormItem>
-            </Col>
-          </Row>
-        </Form>
+      <!-- 通用查询组件 -->
+      <QueryBuilder
+        :fields="queryFields"
+        @search="handleQueryBuilderSearch"
+        @reset="handleQueryBuilderReset"
+      />
+
+      <!-- 操作按钮 -->
+      <div class="map-operations">
+        <Button type="primary" @click="handleAddMarker">
+          <PlusOutlined />添加标记
+        </Button>
       </div>
 
       <!-- 地图区域 -->
@@ -194,11 +165,8 @@ const handleViewProject = (project: any) => {
   background: #fff;
 }
 
-.search-area {
+.map-operations {
   margin-bottom: 16px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
 }
 
 .map-container {
